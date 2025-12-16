@@ -27,7 +27,7 @@ async function handleDocumentWrite(
   fullPath: string
 ): Promise<void> {
   const config = findMatchingConfig(fullPath, collectionConfigs);
-  
+
   if (!config) {
     logger.warn(`No matching config found for path: ${fullPath}`);
     return;
@@ -37,7 +37,7 @@ async function handleDocumentWrite(
     const existsBefore = change.before.exists;
     const existsAfter = change.after.exists;
     let changeType: ChangeType;
-    
+
     if (!existsBefore && existsAfter) {
       changeType = ChangeType.CREATED;
     } else if (existsBefore && existsAfter) {
@@ -49,15 +49,15 @@ async function handleDocumentWrite(
     }
 
     // Extract parent ID from path if applicable
-    const pathParts = fullPath.split('/');
+    const pathParts = fullPath.split("/");
     let parentId: string | undefined;
-    
+
     // Look for wildcard patterns in config paths to extract parentId
     for (const configPath of config.collectionPaths) {
       const match = configPath.match(/\{(\w+)\}/);
       if (match) {
-        const configParts = configPath.split('/');
-        const wildcardIndex = configParts.findIndex(p => p.startsWith('{'));
+        const configParts = configPath.split("/");
+        const wildcardIndex = configParts.findIndex((p) => p.startsWith("{"));
         if (wildcardIndex !== -1 && pathParts[wildcardIndex]) {
           parentId = pathParts[wildcardIndex];
           break;
@@ -88,66 +88,34 @@ async function handleDocumentWrite(
         changeType,
         timestamp: new Date().toISOString(),
         ...(changeType === ChangeType.DELETED
-          ? { documentId: config.includeParentIdInDocumentId && parentId 
-              ? `${parentId}-${docId}` 
-              : docId }
+          ? {
+              documentId:
+                config.includeParentIdInDocumentId && parentId
+                  ? `${parentId}-${docId}`
+                  : docId,
+            }
           : data),
       });
-      
-    logger.info(`Processed ${changeType} for ${fullPath} → ${config.datasetId}.${config.trackerTableId}`);
+
+    logger.info(
+      `Processed ${changeType} for ${fullPath} → ${config.datasetId}.${config.trackerTableId}`
+    );
   } catch (e: any) {
     logger.error(`Error handling onWrite for path ${fullPath}`, e);
   }
 }
 
 /**
- * Generate unique trigger patterns from all collection configs
+ * Single catch-all trigger for all document writes.
+ * The trigger pattern is defined in extension.yaml as {collection}/{document=**}
+ * This handles all collections and routes to the appropriate config.
  */
-function generateTriggerPatterns(): Map<string, RuntimeCollectionConfig[]> {
-  const patterns = new Map<string, RuntimeCollectionConfig[]>();
-  
-  for (const config of collectionConfigs) {
-    for (const path of config.collectionPaths) {
-      // Normalize path to trigger pattern
-      const triggerPath = path.replace(/\{[^}]+\}/g, '{wildcard}');
-      
-      if (!patterns.has(triggerPath)) {
-        patterns.set(triggerPath, []);
-      }
-      patterns.get(triggerPath)!.push(config);
-    }
-  }
-  
-  return patterns;
-}
-
-// Generate and bind triggers for each unique path pattern
-const triggerPatterns = generateTriggerPatterns();
-let triggerIndex = 0;
-
-for (const [pathPattern, _configs] of triggerPatterns) {
-  const suffix = triggerIndex === 0 ? "" : `${triggerIndex + 1}`;
-  const fnName = `fsExportToBqOnChange${suffix}`;
-  
-  logger.info(`Binding trigger ${fnName} for pattern: /${pathPattern}/{documentId} (${_configs.length} configs)`);
-
-  (exports as any)[fnName] = firestore
-    .document(`/${pathPattern}/{documentId}`)
-    .onWrite(async (change, ctx) => {
-      const fullPath = ctx.resource.name.split('/documents/')[1];
-      await handleDocumentWrite(change, ctx, fullPath);
-    });
-    
-  triggerIndex++;
-}
-
-// If no triggers were created, export a placeholder
-if (triggerIndex === 0) {
-  exports.fsExportToBqOnChange = () => {
-    logger.info("No collection configurations loaded");
-    return null;
-  };
-}
+exports.fsExportToBqOnChange = firestore
+  .document("{collection}/{document=**}")
+  .onWrite(async (change, ctx) => {
+    const fullPath = ctx.resource.name.split("/documents/")[1];
+    await handleDocumentWrite(change, ctx, fullPath);
+  });
 
 /**
  * Sync tracker table data to main table for a single collection
@@ -157,7 +125,9 @@ async function syncTrackerToMainTable(
   fs: FirebaseFirestore.Firestore,
   config: RuntimeCollectionConfig
 ): Promise<void> {
-  const settingsRef = fs.collection("bq-sync").doc(`${CONFIG.instanceId}-${config.id}`);
+  const settingsRef = fs
+    .collection("bq-sync")
+    .doc(`${CONFIG.instanceId}-${config.id}`);
   const doc = await settingsRef.get();
   const { lastRunDate } = doc.data() || {};
 
@@ -306,10 +276,10 @@ async function initializeCollection(
   }
 
   // Prepare field schema
-  const fields = config.fields.map(f => ({
+  const fields = config.fields.map((f) => ({
     name: f.key,
-    type: f.type === 'ARRAY' ? 'STRING' : f.type,
-    mode: f.type === 'ARRAY' ? 'REPEATED' : 'NULLABLE',
+    type: f.type === "ARRAY" ? "STRING" : f.type,
+    mode: f.type === "ARRAY" ? "REPEATED" : "NULLABLE",
   }));
 
   // Create tracker table
@@ -358,7 +328,7 @@ async function initializeCollection(
       await backfillCollectionGroup(fs, batchSize, bq, config);
     } else {
       for (const path of config.collectionPaths) {
-        if (!path.includes('{')) {
+        if (!path.includes("{")) {
           await backfillCollection(fs, batchSize, bq, config, path);
         }
       }
@@ -369,27 +339,30 @@ async function initializeCollection(
 /**
  * Initialization task that sets up BigQuery tables for all collections
  */
-exports.initBigQuerySyncFirebase = tasks
-  .taskQueue()
-  .onDispatch(async () => {
-    logger.info(`Initializing BigQuery Sync for ${collectionConfigs.length} collections`);
+exports.initBigQuerySyncFirebase = tasks.taskQueue().onDispatch(async () => {
+  logger.info(
+    `Initializing BigQuery Sync for ${collectionConfigs.length} collections`
+  );
 
-    const bq = new BigQuery();
-    const fs = getFirestore();
+  const bq = new BigQuery();
+  const fs = getFirestore();
 
-    for (const config of collectionConfigs) {
-      try {
-        await initializeCollection(bq, fs, config);
-        logger.info(`Successfully initialized ${config.id}`);
-      } catch (e: any) {
-        logger.error(`Failed to initialize ${config.id}`, e);
-      }
+  for (const config of collectionConfigs) {
+    try {
+      await initializeCollection(bq, fs, config);
+      logger.info(`Successfully initialized ${config.id}`);
+    } catch (e: any) {
+      logger.error(`Failed to initialize ${config.id}`, e);
     }
+  }
 
-    getExtensions()
-      .runtime()
-      .setProcessingState("PROCESSING_COMPLETE", `Setup Successful for ${collectionConfigs.length} collections`);
-  });
+  getExtensions()
+    .runtime()
+    .setProcessingState(
+      "PROCESSING_COMPLETE",
+      `Setup Successful for ${collectionConfigs.length} collections`
+    );
+});
 
 async function backfillCollection(
   fs: FirebaseFirestore.Firestore,

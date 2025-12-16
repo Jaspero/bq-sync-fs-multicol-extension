@@ -38,17 +38,17 @@ resources:
       runtime: nodejs20
       eventTrigger:
         eventType: providers/cloud.firestore/eventTypes/document.write
-        resource: projects/${param:PROJECT_ID}/databases/(default)/documents/{collectionPath=**}
+        resource: projects/${param:PROJECT_ID}/databases/(default)/documents/{collection}/{document=**}
   - name: fsUpdatePrimaryTable
     type: firebaseextensions.v1beta.function
     description: >-
       Schedule triggered function that syncs tracker tables to main tables for all configured collections.
     properties:
       scheduleTrigger:
-        schedule: '${param:SCHEDULE}'
+        schedule: "${param:SCHEDULE}"
         timeZone: ${param:TIME_ZONE}
       runtime: nodejs20
-      timeout: 540s        
+      timeout: 540s
   - name: initBigQuerySyncFirebase
     type: firebaseextensions.v1beta.function
     description: >-
@@ -60,7 +60,7 @@ resources:
       taskQueueTrigger:
         retryConfig:
           maxAttempts: 15
-          minBackoffSeconds: 60     
+          minBackoffSeconds: 60
 
 params:
   - param: SYNC_CONFIG
@@ -80,8 +80,8 @@ params:
         - unix-cron syntax (for example daily at midnight, `0 0 * * *`)
         - App Engine syntax (for example, `every 5 minutes`)
     type: string
-    example: 'every day 00:00'
-    default: '0 0 * * *'
+    example: "every day 00:00"
+    default: "0 0 * * *"
     required: true
 
   - param: TIME_ZONE
@@ -90,9 +90,9 @@ params:
       Refer to [this document](https://cloud.google.com/looker/docs/reference/param-view-timezone-values).
     required: true
     type: string
-    validationRegex: '^(UTC|[A-Za-z_]+/([A-Za-z_]+)*)$'
-    example: 'Asia/Tokyo'
-    default: 'UTC'    
+    validationRegex: "^(UTC|[A-Za-z_]+/([A-Za-z_]+)*)$"
+    example: "Asia/Tokyo"
+    default: "UTC"
 
   - param: DATASET_LOCATION
     label: Default BigQuery Dataset location
@@ -177,4 +177,4 @@ params:
 lifecycleEvents:
   onInstall:
     function: initBigQuerySyncFirebase
-    processingMessage: Configuring BigQuery Sync for all collections.    
+    processingMessage: Configuring BigQuery Sync for all collections.
