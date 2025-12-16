@@ -1,0 +1,41 @@
+{
+  "id": "orders",
+  "collectionPaths": ["orders"],
+  "datasetId": "firestore_sync",
+  "tableId": "orders",
+  "datasetLocation": "eu",
+  "backfill": true,
+  "includeParentIdInDocumentId": false,
+  "schedule": "0 0 * * *",
+  "timeZone": "UTC",
+  "fields": [
+    {
+      "name": "userId",
+      "type": "STRING"
+    },
+    {
+      "name": "status",
+      "type": "STRING"
+    },
+    {
+      "name": "total",
+      "type": "NUMERIC"
+    },
+    {
+      "name": "currency",
+      "type": "STRING"
+    },
+    {
+      "name": "createdOn",
+      "type": "TIMESTAMP"
+    },
+    {
+      "name": "completedOn",
+      "type": "TIMESTAMP"
+    },
+    {
+      "name": "items",
+      "type": "JSON"
+    }
+  ]
+}

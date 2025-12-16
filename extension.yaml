@@ -1,0 +1,180 @@
+name: biquery-sync
+version: 0.0.2
+specVersion: v1beta
+
+displayName: BigQuery Sync (Multi-Collection)
+description: >-
+  Syncs Firestore collections to BigQuery tables. Configure multiple collections 
+  in a single extension instance using JSON configuration files.
+
+license: Apache-2.0
+
+sourceUrl: https://github.com/Jaspero/bigquery-sync-firebase-extension
+releaseNotesUrl: https://github.com/Jaspero/bigquery-sync-firebase-extension/CHANGELOG.md
+
+author:
+  authorName: Jaspero
+  url: https://jaspero.co
+
+billingRequired: true
+
+apis:
+  - apiName: bigquery.googleapis.com
+    reason: Mirrors data from your Cloud Firestore collection in BigQuery.
+
+roles:
+  - role: datastore.user
+    reason: Allows this extension to access Cloud Firestore.
+  - role: bigquery.admin
+    reason: Allows this extension to create tables and write to them.
+
+resources:
+  - name: fsExportToBqOnChange
+    type: firebaseextensions.v1beta.function
+    description:
+      Primary Firestore onWrite trigger. Listens for document writes and routes
+      them to the appropriate BigQuery table based on collection configuration.
+    properties:
+      runtime: nodejs20
+      eventTrigger:
+        eventType: providers/cloud.firestore/eventTypes/document.write
+        resource: projects/${param:PROJECT_ID}/databases/(default)/documents/{collectionPath=**}
+  - name: fsUpdatePrimaryTable
+    type: firebaseextensions.v1beta.function
+    description: >-
+      Schedule triggered function that syncs tracker tables to main tables for all configured collections.
+    properties:
+      scheduleTrigger:
+        schedule: '${param:SCHEDULE}'
+        timeZone: ${param:TIME_ZONE}
+      runtime: nodejs20
+      timeout: 540s        
+  - name: initBigQuerySyncFirebase
+    type: firebaseextensions.v1beta.function
+    description: >-
+      Runs configuration for syncing with BigQuery. Creates datasets, tables,
+      and optionally backfills data for all configured collections.
+    properties:
+      runtime: nodejs20
+      timeout: 540s
+      taskQueueTrigger:
+        retryConfig:
+          maxAttempts: 15
+          minBackoffSeconds: 60     
+
+params:
+  - param: SYNC_CONFIG
+    label: Sync Configuration JSON
+    description: >-
+      JSON configuration for all collections to sync. This is typically generated
+      by running `npm run generate-config` from the functions directory, which reads
+      JSON files from the `collections/` directory. You can also manually provide
+      the configuration here. See documentation for the expected format.
+    type: string
+    required: false
+
+  - param: SCHEDULE
+    label: The frequency at which you want to execute the sync to the main table
+    description: >-
+      - This field can accept strings that use either syntax:
+        - unix-cron syntax (for example daily at midnight, `0 0 * * *`)
+        - App Engine syntax (for example, `every 5 minutes`)
+    type: string
+    example: 'every day 00:00'
+    default: '0 0 * * *'
+    required: true
+
+  - param: TIME_ZONE
+    label: The time zone in which the schedule will run
+    description: >-
+      Refer to [this document](https://cloud.google.com/looker/docs/reference/param-view-timezone-values).
+    required: true
+    type: string
+    validationRegex: '^(UTC|[A-Za-z_]+/([A-Za-z_]+)*)$'
+    example: 'Asia/Tokyo'
+    default: 'UTC'    
+
+  - param: DATASET_LOCATION
+    label: Default BigQuery Dataset location
+    description: >-
+      Default location for BigQuery datasets. Individual collection configs can override this.
+      For help selecting a location, refer to the [location selection
+      guide](https://cloud.google.com/bigquery/docs/locations).
+    type: select
+    options:
+      - label: Iowa (us-central1)
+        value: us-central1
+      - label: Las Vegas (us-west4)
+        value: us-west4
+      - label: Warsaw (europe-central2)
+        value: europe-central2
+      - label: Los Angeles (us-west2)
+        value: us-west2
+      - label: Montreal (northamerica-northeast1)
+        value: northamerica-northeast1
+      - label: Northern Virginia (us-east4)
+        value: us-east4
+      - label: Oregon (us-west1)
+        value: us-west1
+      - label: Salt Lake City (us-west3)
+        value: us-west3
+      - label: Sao Paulo (southamerica-east1)
+        value: southamerica-east1
+      - label: South Carolina (us-east1)
+        value: us-east1
+      - label: Belgium (europe-west1)
+        value: europe-west1
+      - label: Finland (europe-north1)
+        value: europe-north1
+      - label: Frankfurt (europe-west3)
+        value: europe-west3
+      - label: London (europe-west2)
+        value: europe-west2
+      - label: Netherlands (europe-west4)
+        value: europe-west4
+      - label: Zurich (europe-west6)
+        value: europe-west6
+      - label: Taiwan (asia-east1)
+        value: asia-east1
+      - label: Hong Kong (asia-east2)
+        value: asia-east2
+      - label: Jakarta (asia-southeast2)
+        value: asia-southeast2
+      - label: Mumbai (asia-south1)
+        value: asia-south1
+      - label: Singapore (asia-southeast1)
+        value: asia-southeast1
+      - label: Osaka (asia-northeast2)
+        value: asia-northeast2
+      - label: Seoul (asia-northeast3)
+        value: asia-northeast3
+      - label: Singapore (asia-southeast1)
+        value: asia-southeast1
+      - label: Sydney (australia-southeast1)
+        value: australia-southeast1
+      - label: Taiwan (asia-east1)
+        value: asia-east1
+      - label: Tokyo (asia-northeast1)
+        value: asia-northeast1
+      - label: United States (multi-regional)
+        value: us
+      - label: Europe (multi-regional)
+        value: eu
+    default: eu
+    required: true
+    immutable: true
+
+  - param: TRANSFORM_URL
+    label: Transform function URL
+    description: >-
+      Specify a function URL to call that will transform the payload that will
+      be written to BigQuery. See the pre-install documentation for more
+      details.
+    example: https://us-west1-my-project-id.cloudfunctions.net/myTransformFunction
+    type: string
+    required: false
+
+lifecycleEvents:
+  onInstall:
+    function: initBigQuerySyncFirebase
+    processingMessage: Configuring BigQuery Sync for all collections.    

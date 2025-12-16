@@ -1,0 +1,42 @@
+{
+  "id": "posts",
+  "collectionPaths": ["posts"],
+  "datasetId": "firestore_sync",
+  "tableId": "posts",
+  "datasetLocation": "eu",
+  "backfill": true,
+  "includeParentIdInDocumentId": false,
+  "schedule": "0 0 * * *",
+  "timeZone": "UTC",
+  "fields": [
+    {
+      "name": "title",
+      "type": "STRING"
+    },
+    {
+      "name": "content",
+      "type": "STRING"
+    },
+    {
+      "name": "author",
+      "type": "STRING"
+    },
+    {
+      "name": "createdOn",
+      "type": "TIMESTAMP"
+    },
+    {
+      "name": "updatedOn",
+      "type": "TIMESTAMP"
+    },
+    {
+      "name": "tags",
+      "type": "ARRAY",
+      "arrayType": "STRING"
+    },
+    {
+      "name": "published",
+      "type": "BOOL"
+    }
+  ]
+}

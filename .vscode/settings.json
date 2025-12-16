@@ -1,0 +1,17 @@
+{
+  "javascript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": false,
+  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": false,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": false,
+  "javascript.preferences.quoteStyle": "single",
+  "typescript.preferences.quoteStyle": "single",
+
+  "html.customData": [
+    "./cms/node_modules/@jaspero/web-components/dist/vscode.html-custom-data.json",
+    "./web/node_modules/@jaspero/web-components/dist/vscode.html-custom-data.json"
+  ],
+  "css.customData": [
+    "./cms/node_modules/@jaspero/web-components/dist/vscode.css-custom-data.json",
+    "./web/node_modules/@jaspero/web-components/dist/vscode.css-custom-data.json"
+  ]
+}

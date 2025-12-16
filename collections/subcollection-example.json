@@ -1,0 +1,38 @@
+{
+  "id": "subcollection-example",
+  "collectionPaths": [
+    "users/{parentId}/notifications",
+    "orders/{parentId}/items"
+  ],
+  "collectionGroup": "notifications",
+  "datasetId": "firestore_sync",
+  "tableId": "notifications",
+  "datasetLocation": "eu",
+  "backfill": true,
+  "includeParentIdInDocumentId": true,
+  "schedule": "0 0 * * *",
+  "timeZone": "UTC",
+  "fields": [
+    {
+      "name": "parentId",
+      "type": "STRING",
+      "accessor": "/parentId"
+    },
+    {
+      "name": "type",
+      "type": "STRING"
+    },
+    {
+      "name": "message",
+      "type": "STRING"
+    },
+    {
+      "name": "read",
+      "type": "BOOL"
+    },
+    {
+      "name": "createdOn",
+      "type": "TIMESTAMP"
+    }
+  ]
+}

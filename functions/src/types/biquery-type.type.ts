@@ -1,0 +1,1 @@
+export type BigQueryType = 'ARRAY' | 'BOOL' | 'BYTES' | 'DATE' | 'DATETIME' | 'GEOGRAPHY' | 'INTERVAL' | 'JSON' | 'INT64' | 'NUMERIC' | 'BIGNUMERIC' | 'BIGDECIMAL' | 'FLOAT64' | 'RANGE' | 'STRING' | 'STRUCT'	| 'TIME' | 'TIMESTAMP' | 'REPEATED';

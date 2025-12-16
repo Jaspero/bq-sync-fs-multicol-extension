@@ -1,0 +1,34 @@
+{
+  "id": "users",
+  "collectionPaths": ["users"],
+  "datasetId": "firestore_sync",
+  "tableId": "users",
+  "datasetLocation": "eu",
+  "backfill": true,
+  "includeParentIdInDocumentId": false,
+  "schedule": "0 0 * * *",
+  "timeZone": "UTC",
+  "fields": [
+    {
+      "name": "email",
+      "type": "STRING"
+    },
+    {
+      "name": "displayName",
+      "type": "STRING"
+    },
+    {
+      "name": "createdOn",
+      "type": "TIMESTAMP"
+    },
+    {
+      "name": "country",
+      "type": "STRING"
+    },
+    {
+      "name": "roles",
+      "type": "ARRAY",
+      "arrayType": "STRING"
+    }
+  ]
+}

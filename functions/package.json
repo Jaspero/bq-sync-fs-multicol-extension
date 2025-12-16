@@ -1,0 +1,30 @@
+{
+  "name": "functions",
+  "scripts": {
+    "lint": "eslint \"src/**/*\"",
+    "lint:fix": "eslint \"src/**/*\" --fix",
+    "build": "tsc",
+    "build:watch": "tsc --watch"
+  },
+  "main": "lib/index.js",
+  "dependencies": {
+    "@google-cloud/bigquery": "7.9.1",
+    "firebase-admin": "13.0.2",
+    "firebase-functions": "6.2.0",
+    "json-pointer": "^0.6.2",
+    "luxon": "3.5.0"
+  },
+  "devDependencies": {
+    "@types/json-pointer": "1.0.34",
+    "@types/luxon": "3.4.2",
+    "@types/node": "20.10.0",
+    "@typescript-eslint/eslint-plugin": "8.18.0",
+    "@typescript-eslint/parser": "8.18.0",
+    "eslint": "9.17.0",
+    "eslint-config-google": "0.14.0",
+    "eslint-plugin-import": "2.31.0",
+    "ts-node": "10.9.2",
+    "typescript": "5.7.2"
+  },
+  "private": true
+}
