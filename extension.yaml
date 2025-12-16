@@ -71,7 +71,7 @@ params:
       JSON files from the `collections/` directory. You can also manually provide
       the configuration here. See documentation for the expected format.
     type: string
-    required: false
+    required: true
 
   - param: SCHEDULE
     label: The frequency at which you want to execute the sync to the main table

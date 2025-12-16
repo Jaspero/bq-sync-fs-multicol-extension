@@ -141,7 +141,11 @@ async function syncTrackerToMainTable(
     .map(
       ({ key, type }) =>
         `ARRAY_AGG(${
-          type === "ARRAY" ? `ARRAY_TO_STRING(\`${key}\`, ",")` : `\`${key}\``
+          type === "ARRAY"
+            ? `ARRAY_TO_STRING(\`${key}\`, ",")`
+            : type === "JSON"
+            ? `TO_JSON_STRING(\`${key}\`)`
+            : `\`${key}\``
         } IGNORE NULLS ORDER BY timestamp DESC)[OFFSET(0)] AS \`${key}\``
     )
     .join(",");
@@ -149,7 +153,11 @@ async function syncTrackerToMainTable(
     .map(
       ({ key, type }) =>
         `\`${key}\` = IF(n.\`${key}\` is not NULL, ${
-          type === "ARRAY" ? `SPLIT(n.\`${key}\`, ",")` : `n.\`${key}\``
+          type === "ARRAY"
+            ? `SPLIT(n.\`${key}\`, ",")`
+            : type === "JSON"
+            ? `PARSE_JSON(n.\`${key}\`)`
+            : `n.\`${key}\``
         }, i.\`${key}\`)`
     )
     .join(",");
@@ -192,7 +200,11 @@ async function syncTrackerToMainTable(
         .map(
           (f) =>
             `${
-              f.type === "ARRAY" ? `SPLIT(\`${f.key}\`, ",")` : `\`${f.key}\``
+              f.type === "ARRAY"
+                ? `SPLIT(\`${f.key}\`, ",")`
+                : f.type === "JSON"
+                ? `PARSE_JSON(\`${f.key}\`)`
+                : `\`${f.key}\``
             } as \`${f.key}\``
         )
         .join(",")}
@@ -275,8 +287,15 @@ async function initializeCollection(
     }
   }
 
-  // Prepare field schema
-  const fields = config.fields.map((f) => ({
+  // Prepare field schema for tracker table (JSON stored as STRING for aggregation)
+  const trackerFields = config.fields.map((f) => ({
+    name: f.key,
+    type: f.type === "ARRAY" || f.type === "JSON" ? "STRING" : f.type,
+    mode: f.type === "ARRAY" ? "REPEATED" : "NULLABLE",
+  }));
+
+  // Prepare field schema for main table (uses native JSON type)
+  const mainFields = config.fields.map((f) => ({
     name: f.key,
     type: f.type === "ARRAY" ? "STRING" : f.type,
     mode: f.type === "ARRAY" ? "REPEATED" : "NULLABLE",
@@ -294,7 +313,7 @@ async function initializeCollection(
         { name: "changeType", type: "STRING", mode: "REQUIRED" },
         { name: "timestamp", type: "TIMESTAMP", mode: "REQUIRED" },
         { name: "documentId", type: "STRING", mode: "REQUIRED" },
-        ...fields,
+        ...trackerFields,
       ],
     });
     logger.info(`Created tracker table ${config.trackerTableId}`);
@@ -309,7 +328,7 @@ async function initializeCollection(
     await bq.dataset(config.datasetId).createTable(config.tableId, {
       schema: [
         { name: "documentId", type: "STRING", mode: "REQUIRED" },
-        ...fields,
+        ...mainFields,
       ],
     });
     logger.info(`Created main table ${config.tableId}`);

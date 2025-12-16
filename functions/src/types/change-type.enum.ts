@@ -1,5 +1,5 @@
 export enum ChangeType {
-	CREATED = 'CREATED',
-	DELETED = 'DELETED',
-	UPDATED = 'UPDATED',
+  CREATED = "CREATED",
+  DELETED = "DELETED",
+  UPDATED = "UPDATED",
 }

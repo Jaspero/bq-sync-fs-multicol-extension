@@ -1,0 +1,12 @@
+{
+  "name": "bq-sync-examples",
+  "private": true,
+  "scripts": {
+    "generate-config": "npx ts-node scripts/generate-config.ts"
+  },
+  "devDependencies": {
+    "@types/node": "20.10.0",
+    "ts-node": "10.9.2",
+    "typescript": "5.7.2"
+  }
+}

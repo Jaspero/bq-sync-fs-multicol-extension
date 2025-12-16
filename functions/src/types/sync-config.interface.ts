@@ -1,4 +1,4 @@
-import { BigQueryType } from './biquery-type.type';
+import { BigQueryType } from "./biquery-type.type";
 
 /**
  * Field definition for BigQuery table
@@ -78,7 +78,8 @@ export interface ParsedFieldDefinition {
 /**
  * Runtime collection config with parsed fields
  */
-export interface RuntimeCollectionConfig extends Omit<CollectionSyncConfig, 'fields'> {
+export interface RuntimeCollectionConfig
+  extends Omit<CollectionSyncConfig, "fields"> {
   fields: ParsedFieldDefinition[];
   trackerTableId: string;
   /** Regex pattern to match document paths */
