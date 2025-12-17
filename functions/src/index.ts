@@ -1,13 +1,14 @@
 import { BigQuery } from "@google-cloud/bigquery";
 import * as admin from "firebase-admin";
 import { getExtensions } from "firebase-admin/extensions";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, FieldPath } from "firebase-admin/firestore";
 import { DateTime } from "luxon";
 import { CONFIG, getCollectionConfigs, findMatchingConfig } from "./config";
 import { ChangeType } from "./types/change-type.enum";
 import { RuntimeCollectionConfig } from "./types/sync-config.interface";
 import { formatDocument } from "./utils/format-document";
 import { pubsub, tasks, logger, firestore } from "firebase-functions/v1";
+import { getFunctions } from "firebase-admin/functions";
 
 if (admin.apps.length === 0) {
   admin.initializeApp();
@@ -356,22 +357,24 @@ async function initializeCollection(
 }
 
 /**
- * Initialization task that sets up BigQuery tables for all collections
+ * Initialization task that dispatches individual tasks for each collection
  */
 exports.initBigQuerySyncFirebase = tasks.taskQueue().onDispatch(async () => {
   logger.info(
-    `Initializing BigQuery Sync for ${collectionConfigs.length} collections`
+    `Dispatching initialization tasks for ${collectionConfigs.length} collections`
   );
 
-  const bq = new BigQuery();
-  const fs = getFirestore();
+  const queue = getFunctions().taskQueue(
+    `locations/${CONFIG.location}/functions/processCollectionInit`,
+    CONFIG.instanceId
+  );
 
   for (const config of collectionConfigs) {
     try {
-      await initializeCollection(bq, fs, config);
-      logger.info(`Successfully initialized ${config.id}`);
+      await queue.enqueue({ collectionId: config.id });
+      logger.info(`Enqueued initialization task for ${config.id}`);
     } catch (e: any) {
-      logger.error(`Failed to initialize ${config.id}`, e);
+      logger.error(`Failed to enqueue task for ${config.id}`, e);
     }
   }
 
@@ -379,9 +382,36 @@ exports.initBigQuerySyncFirebase = tasks.taskQueue().onDispatch(async () => {
     .runtime()
     .setProcessingState(
       "PROCESSING_COMPLETE",
-      `Setup Successful for ${collectionConfigs.length} collections`
+      `Dispatched initialization for ${collectionConfigs.length} collections`
     );
 });
+
+/**
+ * Processes initialization for a single collection
+ */
+exports.processCollectionInit = tasks
+  .taskQueue()
+  .onDispatch(async (data: { collectionId: string }) => {
+    const config = collectionConfigs.find((c) => c.id === data.collectionId);
+
+    if (!config) {
+      logger.error(`No config found for collection ID: ${data.collectionId}`);
+      return;
+    }
+
+    logger.info(`Initializing collection: ${config.id}`);
+
+    const bq = new BigQuery();
+    const fs = getFirestore();
+
+    try {
+      await initializeCollection(bq, fs, config);
+      logger.info(`Successfully initialized ${config.id}`);
+    } catch (e: any) {
+      logger.error(`Failed to initialize ${config.id}`, e);
+      throw e; // Re-throw to trigger retry
+    }
+  });
 
 async function backfillCollection(
   fs: FirebaseFirestore.Firestore,
@@ -395,7 +425,7 @@ async function backfillCollection(
   let total = 0;
 
   do {
-    let col: any = fs.collection(path);
+    let col: any = fs.collection(path).orderBy(FieldPath.documentId());
 
     if (ref) {
       col = col.startAt(ref);
@@ -445,7 +475,9 @@ async function backfillCollectionGroup(
   let total = 0;
 
   do {
-    let col: any = fs.collectionGroup(config.collectionGroup!);
+    let col: any = fs
+      .collectionGroup(config.collectionGroup!)
+      .orderBy(FieldPath.documentId());
 
     if (ref) {
       col = col.startAt(ref);

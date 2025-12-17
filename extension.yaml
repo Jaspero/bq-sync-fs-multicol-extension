@@ -52,7 +52,7 @@ resources:
   - name: initBigQuerySyncFirebase
     type: firebaseextensions.v1beta.function
     description: >-
-      Runs configuration for syncing with BigQuery. Creates datasets, tables,
+      Dispatches initialization tasks for each collection. Creates datasets, tables,
       and optionally backfills data for all configured collections.
     properties:
       runtime: nodejs20
@@ -60,6 +60,18 @@ resources:
       taskQueueTrigger:
         retryConfig:
           maxAttempts: 15
+          minBackoffSeconds: 60
+  - name: processCollectionInit
+    type: firebaseextensions.v1beta.function
+    description: >-
+      Processes initialization for a single collection. Creates dataset, tables,
+      and optionally backfills data.
+    properties:
+      runtime: nodejs20
+      timeout: 540s
+      taskQueueTrigger:
+        retryConfig:
+          maxAttempts: 5
           minBackoffSeconds: 60
 
 params:
@@ -176,5 +188,8 @@ params:
 
 lifecycleEvents:
   onInstall:
+    function: initBigQuerySyncFirebase
+    processingMessage: Configuring BigQuery Sync for all collections.
+  onUpdate:
     function: initBigQuerySyncFirebase
     processingMessage: Configuring BigQuery Sync for all collections.

@@ -16,6 +16,7 @@ export const CONFIG = {
   timeZone: process.env.TIME_ZONE || "UTC",
   datasetLocation: process.env.DATASET_LOCATION || "eu",
   transformUrl: process.env.TRANSFORM_URL,
+  location: process.env.LOCATION || "us-central1",
 };
 
 /**
