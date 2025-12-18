@@ -70,15 +70,15 @@ function toRuntimeConfig(
   // Build regex patterns for each collection path
   const pathPatterns = config.collectionPaths.map((path) => {
     // Convert Firestore path pattern to regex
-    // e.g., "users/{parentId}/posts" -> "^users/[^/]+/posts$"
+    // e.g., "users/{parentId}/posts" -> "^users\/[^\/]+\/posts$"
     const regexStr =
       "^" + path.replace(/\{[^}]+\}/g, "[^/]+").replace(/\//g, "\\/") + "$";
-    return new RegExp(regexStr);
+    return regexStr;
   });
 
-  // Combine patterns into single regex
+  // Combine patterns into single regex, keeping the ^ and $ anchors for each pattern
   const combinedPattern = new RegExp(
-    pathPatterns.map((p) => p.source.slice(1, -1)).join("|")
+    pathPatterns.map((p) => `(?:${p})`).join("|")
   );
 
   return {
