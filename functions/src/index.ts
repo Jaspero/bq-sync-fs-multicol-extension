@@ -142,11 +142,7 @@ async function syncTrackerToMainTable(
     .map(
       ({ key, type }) =>
         `ARRAY_AGG(${
-          type === "ARRAY"
-            ? `ARRAY_TO_STRING(\`${key}\`, ",")`
-            : type === "JSON"
-            ? `TO_JSON_STRING(\`${key}\`)`
-            : `\`${key}\``
+          type === "ARRAY" ? `ARRAY_TO_STRING(\`${key}\`, ",")` : `\`${key}\``
         } IGNORE NULLS ORDER BY timestamp DESC)[OFFSET(0)] AS \`${key}\``
     )
     .join(",");
